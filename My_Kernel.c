@@ -16,15 +16,12 @@ char buf[BUFSIZE]; //kernel buffer
 
 static ssize_t Mywrite(struct file *fileptr, const char __user *ubuf, size_t buffer_len, loff_t *offset){
     /*Your code here*/
-    if (buffer_len > BUFSIZE)
-        buffer_len = BUFSIZE;
-
+    if (buffer_len > BUFSIZE - 1)
+        buffer_len = BUFSIZE - 1;
     if (copy_from_user(buf, ubuf, buffer_len))
         return -EFAULT;
-
     buf[buffer_len] = '\0';
-    pr_info("Received from user: %s\n", buf);
-
+    pr_info("Received: %s\n", buf);
     return buffer_len;
     /****************/
 }
@@ -32,18 +29,15 @@ static ssize_t Mywrite(struct file *fileptr, const char __user *ubuf, size_t buf
 
 static ssize_t Myread(struct file *fileptr, char __user *ubuf, size_t buffer_len, loff_t *offset){
     /*Your code here*/
-    int len;
+    char temp_buf[BUFSIZE];
     unsigned long time_ms = jiffies_to_msecs(jiffies);
-
-    len = snprintf(buf, BUFSIZE, "String: %s\nProcess ID: %d\nThread ID: %d\nTime(ms): %lu\n",
-                   buf, current->pid, current->pid, time_ms);
-
+    int len = snprintf(temp_buf, BUFSIZE,
+                       "String: %s\nProcess ID: %d\nThread ID: %d\nTime(ms): %lu\n",
+                       buf, current->pid, current->pid, time_ms);
     if (*offset > 0 || buffer_len < len)
         return 0;
-
-    if (copy_to_user(ubuf, buf, len))
+    if (copy_to_user(ubuf, temp_buf, len))
         return -EFAULT;
-
     *offset = len;
     return len;
     /****************/
